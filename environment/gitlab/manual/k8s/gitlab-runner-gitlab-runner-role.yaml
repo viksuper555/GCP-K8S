@@ -1,11 +1,11 @@
-# ${FACULTY_NUMBER} and ${NAMESPACE} in this file is the same value as defined in "im.sh" and "deploy.sh"
+# -471220028 and gitlab-471220028 in this file is the same value as defined in "im.sh" and "deploy.sh"
 # and is replaced by the "deploy.sh" script.
 
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: gitlab-runner${FACULTY_NUMBER}
-  namespace: ${NAMESPACE}
+  name: gitlab-runner-471220028
+  namespace: gitlab-471220028
 rules:
   - apiGroups: [""]
     resources: ["pods"]

@@ -5,13 +5,13 @@ set -e
 
 ########################################################################################################################
 # Нещо уникално за вашия проект, например '-<факултетен номер на студента>'.
-FACULTY_NUMBER=""
+FACULTY_NUMBER="-471220028"
 # Нещо уникално за вашия проект, например 'gitlab-<факултетен номер на студента>' ("gitlab-F1111111"_.
 NAMESPACE="gitlab${FACULTY_NUMBER}"
 # Name of the runner
 GITLAB_RUNNER_NAME="tu-sofia-pis-2023-dev"
 # Add gitlab runner token here: replace "TOKEN" with your registration token.
-GITLAB_RUNNER_TOKEN="${GITLAB_RUNNER_TOKEN:-"TOKEN"}"
+GITLAB_RUNNER_TOKEN="${GITLAB_RUNNER_TOKEN:-"UFmuo1CGnmPYsLHRsNY9"}"
 ########################################################################################################################
 
 PROJECT_ID=$(gcloud config get-value core/project)
@@ -26,3 +26,4 @@ sed -i "s/\\\${NAMESPACE}/${NAMESPACE}/g" k8s/*.yaml
 
 kubectl create namespace "${NAMESPACE}" || true
 kubectl apply -f k8s --namespace "${NAMESPACE}"
+$SHELL

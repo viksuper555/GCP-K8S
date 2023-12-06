@@ -1,0 +1,60 @@
+# ${FACULTY_NUMBER} in this file should be replaced manually!
+# This value should match the one in "service.yaml" file!
+# It doesn't have to be the same as the one defined in "im.sh", "deploy.sh" and ".gitlab-ci.yaml" -
+# other value can be chosen, but for simplicity, I would advise on using the same value.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${FACULTY_NUMBER}
+  labels:
+    app: ${FACULTY_NUMBER}
+spec:
+  replicas: ${INSTANCES}
+  selector:
+    matchLabels:
+      app: ${FACULTY_NUMBER}
+  template:
+    metadata:
+      labels:
+        app: ${FACULTY_NUMBER}
+    spec:
+      volumes:
+        - name: data
+          emptyDir: {}
+
+      containers:
+        - name: ${FACULTY_NUMBER}
+          # The bellow value of $CI_PROJECT_NAME is used in the ".gitlab-ci.yml" file for the project to replace the
+          # next line with Docker image:tag. YOU MUST REPLACE THE "$CI_PROJECT_NAME" your docker image name.
+          # Tag will be added by replacing the below line with the command
+          # "sed -i "s|${IMAGE}$|${IMAGE}:latest|g" k8s/*" from ".gitlab-ci.yml" file.
+          image: us.gcr.io/tu-sofia-pis-2023-dev/$CI_PROJECT_NAME
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: ${CONTAINER_JAVA_OPTS}
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: management
+              containerPort: 8081
+            - name: jmx
+              containerPort: 5555
+          livenessProbe:
+            httpGet:
+              path: /Mr./Neo/Anderson
+              port: 8080
+            periodSeconds: 5
+            initialDelaySeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /Mr./Neo/Anderson
+              port: 8080
+            periodSeconds: 5
+            initialDelaySeconds: 60
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/data
+          resources:
+            requests:
+              cpu: ${CPU}
+              memory: ${MEMORY}

@@ -1,0 +1,34 @@
+image: google/cloud-sdk:latest
+
+stages:
+  - deploy-dev
+  - deploy-prod
+
+.deploy_template: &deploy_definition
+ script:
+   - gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+   - gcloud config set project ${CI_ENVIRONMENT_NAME}
+   - ./enableapis.sh
+   - ./deploy.sh
+   - ./iam.sh
+
+tu-sofia-pis-2023-dev:
+ <<: *deploy_definition
+ stage: deploy-dev
+ tags:
+   - tu-sofia-pis-2023-dev
+ environment:
+   name: tu-sofia-pis-2023-dev
+ only:
+    - master
+
+
+tu-sofia-pis-2023-prod:
+ <<: *deploy_definition
+ stage: deploy-prod
+ tags:
+   - tu-sofia-pis-2023-prod
+ environment:
+   name: tu-sofia-pis-2023-prod
+ only:
+    - master

@@ -1,0 +1,105 @@
+properties:
+  apiVersion:
+    type: string
+    description: GKE API version.
+    default: v1
+    enum:
+    - v1
+    - v1beta1
+  zone:
+    type: string
+    description: GCP zone in which to deploy a v1 cluster.
+  clusterName:
+    type: string
+    description: GKE cluster name.
+  monitoringService:
+    type: string
+    description: What monitoring service to use. Can be monitoring.googleapis.com/kubernetes (API default)
+      or monitoring.googleapis.com (< GKE 1.15) or none.
+  loggingService:
+    type: string
+    description: What logging service to use. Can be logging.googleapis.com/kubernetes (API default)
+      or logging.googleapis.com (< GKE 1.15) or none.
+  httpLoadBalancing:
+    type: boolean
+    description: If false, httpLoadBalancing is disabled. If not set, no
+      addonsConfig field is set on the cluster.
+  locations:
+    type: string
+    description: Comma-delimited string with all zones to run nodes in.
+  currentMasterVersion:
+    description: Output only. The Kubernetes version running on the cluster master.
+  initialClusterVersion:
+    description: The Kubernetes version running on the cluster master.
+  location:
+    type: string
+    description: GCP zone or region in which to deploy a v1beta1 cluster.
+  maintenanceWindowStartTime:
+    type: string
+    description: Duration of the time window, automatically chosen to be smallest possible in the given scenario. Duration will be in RFC3339 format "PTnHnMnS".
+    default: 00:00
+  maintenanceWindowDuration:
+    type: string
+    description: Duration of the time window, automatically chosen to be smallest possible in the given scenario. Duration will be in RFC3339 format "PTnHnMnS".
+  nodePoolName:
+    type: string
+    description: Name of the node pool.
+  machineType:
+    type: string
+    description: The name of a Google Compute Engine machine type. If unspecified, the default machine type is e2-medium.
+    default: e2-standard-4
+  diskSizeGb:
+    type: integer
+    description: Size of the disk attached to each node, specified in GB. The smallest allowed disk size is 10GB.
+    default: 10
+  imageType:
+    type: string
+    description: Image type of the cluster's node pool (cos or ubuntu)
+    default: cos_containerd
+    enum:
+    - cos_containerd
+    - ubuntu_containerd
+  nodeVersion:
+    type: string
+    description: The Kubernetes version running on the cluster nodes.
+  spot:
+    type: boolean
+    description: Spot flag for enabling Spot VM, which is a rebrand of the existing preemptible flag.
+    default: false
+  initialNodeCount:
+    type: integer
+    description: The initial node count for the pool. You must ensure that your Compute Engine resource quota is sufficient for this number of instances. You must also have available firewall and routes quota.
+    default: 1
+  autoscaling:
+    type: boolean
+    description: True if node pool should autoscale.
+    default: false
+  maxNodeCount:
+    type: integer
+    description: Maximum number of nodes for one location in the NodePool. Must be >= minNodeCount. There has to be enough quota to scale up the cluster.
+  totalMaxNodeCount:
+    type: integer
+    description: Maximum number of nodes in the node pool. Must be greater than totalMinNodeCount. There has to be enough quota to scale up the cluster. The total_*_node_count fields are mutually exclusive with the *_node_count fields.
+  autoUpgrade:
+    type: boolean
+    description: True if node pool should auto upgrade.
+    default: false
+  autoRepair:
+    type: boolean
+    description: True if node pool should auto repair.
+    default: false
+  oauthScopes:
+    type: string
+    description: Scopes that are used by NAP when creating node pools.
+    default: https://www.googleapis.com/auth/cloud-platform
+  serviceAccountId:
+    type: string
+    description: The resource name of the service account.
+  serviceAccountDisplayName:
+    type: string
+    description: Optional. A user-specified, human-readable name for the service account. The maximum length is 100 UTF-8 bytes.
+    default:
+  serviceAccountDescription:
+    type: string
+    description: Optional. A user-specified, human-readable name for the service account. The maximum length is 100 UTF-8 bytes.
+    default:

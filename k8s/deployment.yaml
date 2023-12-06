@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tu-sofia-pis-2023
+  labels:
+    app: tu-sofia-pis-2023
+spec:
+  replicas: ${INSTANCES}
+  selector:
+    matchLabels:
+      app: tu-sofia-pis-2023
+  template:
+    metadata:
+      labels:
+        app: tu-sofia-pis-2023
+    spec:
+      volumes:
+        - name: data
+          emptyDir: {}
+
+      containers:
+        - name: tu-sofia-pis-2023
+          image: us.gcr.io/tu-sofia-pis-2023-dev/tu-sofia-pis-2023
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: ${CONTAINER_JAVA_OPTS}
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: management
+              containerPort: 8081
+            - name: jmx
+              containerPort: 5555
+          livenessProbe:
+            httpGet:
+              path: /Mr./Neo/Anderson
+              port: 8080
+            periodSeconds: 5
+            initialDelaySeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /Mr./Neo/Anderson
+              port: 8080
+            periodSeconds: 5
+            initialDelaySeconds: 60
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/data
+          resources:
+            requests:
+              cpu: ${CPU}
+              memory: ${MEMORY}

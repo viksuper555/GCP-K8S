@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.1.4</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+
+	<groupId>bg.tu-sofia</groupId>
+	<artifactId>tu-sofia-pis-2023</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>tu-sofia-pis-2023</name>
+	<description>Demo project for Spring Boot</description>
+
+	<properties>
+		<java.version>17</java.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- tag::actuator[] -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<!-- end::actuator[] -->
+
+		<!-- tag::tests[] -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- end::tests[] -->
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<!-- Docker image: Option 1 - Use "spring-boot-maven-plugin" for building the Docker image. -->
+				<configuration>
+					<layers>
+						<enabled>true</enabled>
+					</layers>
+					<image>
+						<name>us.gcr.io/tu-sofia-pis-2023-dev/${project.artifactId}:${dockerImageVersion}</name>
+						<env>
+							<BPL_JAVA_NMT_ENABLED>false</BPL_JAVA_NMT_ENABLED>
+							<BPE_DELIM_JAVA_TOOL_OPTIONS xml:space="preserve"> </BPE_DELIM_JAVA_TOOL_OPTIONS>
+							<BPE_APPEND_JAVA_TOOL_OPTIONS>-XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:MinMetaspaceFreeRatio=10 -XX:MaxMetaspaceFreeRatio=20</BPE_APPEND_JAVA_TOOL_OPTIONS>
+						</env>
+					</image>
+				</configuration>
+			</plugin>
+
+			<!-- Docker image: Option 2 - Fabric8io's docker-maven-plugin. This is the preferred approach! -->
+			<plugin>
+				<groupId>io.fabric8</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.43.4</version>
+				<configuration>
+					<images>
+						<image>
+							<name>us.gcr.io/tu-sofia-pis-2023-dev/${project.artifactId}:${dockerImageVersion}</name>
+							<build>
+								<from>openjdk:17-alpine</from>
+								<entryPoint>java -jar maven/${project.build.finalName}.jar</entryPoint>
+							</build>
+						</image>
+					</images>
+				</configuration>
+			</plugin>
+
+			<!-- Docker image: Option 3 - DEPRECATED: This plugin is deprecated and there are authentication problems with GCR! -->
+			<!--<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>1.2.2</version>
+				<configuration>
+					<baseImage>openjdk:17-alpine</baseImage>
+					<imageName>us.gcr.io/tu-sofia-pis-2023-dev/${project.artifactId}</imageName>
+					<pullOnBuild>true</pullOnBuild>
+					<useGitCommitId>true</useGitCommitId>
+					<entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint>
+
+					&lt;!&ndash; copy the service's jar file from target into the root directory of the image &ndash;&gt;
+					<resources>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.build.directory}</directory>
+							<include>${project.build.finalName}.jar</include>
+						</resource>
+					</resources>
+				</configuration>
+			</plugin>-->
+		</plugins>
+	</build>
+</project>

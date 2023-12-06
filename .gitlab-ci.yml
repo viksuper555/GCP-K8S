@@ -5,8 +5,8 @@ stages:
   - build
   - build-docker
   - deploy-dev
-  - deploy-int
-  - deploy-prod
+  # - deploy-int
+  # - deploy-prod
 
 variables:
   MAVEN_ARGS: "-B -U -T 1.0C -ntp -ff"
@@ -30,12 +30,14 @@ variables:
     - echo "Starting maven"
   script:
     # NOTE: Build project.
-    - ./mvnw ${MAVEN_ARGS} verify
+    - mvn ${MAVEN_ARGS} verify
+    #- ./mvnw ${MAVEN_ARGS} verify
     #
     # NOTE: All options to build and push Docker image currently fail with authentication errors to GCR.
     #       Please use Dockerfile and the "build docker image" from the "build-docker" stage.
     #
     # NOTE: Option 1 - Build project and Docker image using "spring-boot-maven-plugin".
+    - mvn ${MAVEN_ARGS} clean install spring-boot:build-image -DdockerImageVersion=${CI_COMMIT_SHA:0:7}
     #- ./mvnw ${MAVEN_ARGS} verify spring-boot:build-image -DdockerImageVersion=${CI_COMMIT_SHA:0:7}
     #- docker push ${IMAGE}:${CI_COMMIT_SHA:0:7}
     #
@@ -134,9 +136,9 @@ build docker image:
     - sed -i "s|\\\${INSTANCES}|${INSTANCES}|g" k8s/*
     - sed -i "s|\\\${CPU}|${CPU}|g" k8s/*
     - sed -i "s|\\\${MEMORY}|${MEMORY}|g" k8s/*
-    - kubectl create ns pis || true
-    - kubectl --namespace=pis apply -f k8s/
-    - kubectl rollout status --namespace=pis -f k8s/deployment.yaml -w
+    - kubectl create ns gitlab-471220028 || true
+    - kubectl --namespace=gitlab-471220028 apply -f k8s/
+    - kubectl rollout status --namespace=gitlab-471220028 -f k8s/deployment.yaml -w
   dependencies: []
 
 dev-tu-sofia-pis:
@@ -151,21 +153,21 @@ dev-tu-sofia-pis:
     - main
     - dev
 
-prod-tu-sofia-pis:
-  <<: *deploy_definition
-  # NOTE: Example on how some deployment options can be changed for different environments.
-  #variables:
-  #  INSTANCES: 3
-  #  CPU: 500m
-  #  MEMORY: 4096Mi
-  #  CONTAINER_JAVA_OPTS_MEMORY: "-Xmx3584m"
-  stage: deploy-prod
-  tags:
-    - tu-sofia-pis-2023-prod
-  environment:
-    name: tu-sofia-pis-2023-prod
-    url: https://tu-sofia-pis-2023-prod.tu-sofia.bg/
-  when: manual
-  only:
-    - main
-    - tags
+# prod-tu-sofia-pis:
+#   <<: *deploy_definition
+#   # NOTE: Example on how some deployment options can be changed for different environments.
+#   #variables:
+#   #  INSTANCES: 3
+#   #  CPU: 500m
+#   #  MEMORY: 4096Mi
+#   #  CONTAINER_JAVA_OPTS_MEMORY: "-Xmx3584m"
+#   stage: deploy-prod
+#   tags:
+#     - tu-sofia-pis-2023-prod
+#   environment:
+#     name: tu-sofia-pis-2023-prod
+#     url: https://tu-sofia-pis-2023-prod.tu-sofia.bg/
+#   when: manual
+#   only:
+#     - main
+#     - tags

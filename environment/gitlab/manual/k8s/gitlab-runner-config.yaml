@@ -1,10 +1,10 @@
-# ${FACULTY_NUMBER}, ${GITLAB_RUNNER_NAME}, ${GITLAB_RUNNER_TOKEN}, ${PROJECT_ID} and ${NAMESPACE} in this file are the
-# same values as defined in "im.sh" and "deploy.sh" and is replaced by the "deploy.sh" script.
+# -471220028, tu-sofia-pis-2023-dev, UFmuo1CGnmPYsLHRsNY9, tu-sofia-pis-2023-dev and gitlab-471220028 in this file are the
+# same values as defined in "iam.sh" and "deploy.sh" and is replaced by the "deploy.sh" script.
 
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gitlab-runner${FACULTY_NUMBER}
+  name: gitlab-runner-471220028
 data:
   config.toml: |
     concurrent = 2
@@ -12,15 +12,12 @@ data:
     [[runners]]
       url = "https://gitlab.com/"
       # Name of the runner shown in gitlab, you can choose whatever you want
-      name = "${GITLAB_RUNNER_NAME}"
-      # ${GITLAB_RUNNER_TOKEN} - AFTER registration of the runner, check the generated config.toml and copy the 
-      # runner token in "./deploy.sh". For the runner the registration use the registration  token provided 
-      # in the GitLab project "Settings -> CI/CD -> Runner -> New project runner"!
-      token = "${GITLAB_RUNNER_TOKEN}"
+      name = "tu-sofia-pis-2023-dev"
+      token = "UFmuo1CGnmPYsLHRsNY9"
       executor = "kubernetes"
-      environment = ["GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/google-key/service-account.json", "GOOGLE_APPLICATION_EMAIL=gitlab-runner${FACULTY_NUMBER}@${PROJECT_ID}.iam.gserviceaccount.com"]
+      environment = ["GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/google-key/service-account.json", "GOOGLE_APPLICATION_EMAIL=gitlab-runner-471220028@tu-sofia-pis-2023-dev.iam.gserviceaccount.com"]
       [runners.kubernetes]
-        namespace = "${NAMESPACE}"
+        namespace = "gitlab-471220028"
         privileged = true
         cpu_request = "200m"
         memory_request = "512Mi"

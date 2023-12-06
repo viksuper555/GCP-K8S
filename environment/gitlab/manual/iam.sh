@@ -4,7 +4,7 @@ set -e
 
 ########################################################################################################################
 # Нещо уникално за вашия проект, например '-<факултетен номер на студента>'.
-FACULTY_NUMBER=""
+FACULTY_NUMBER="-471220028"
 # Нещо уникално за вашия проект, например 'gitlab-<факултетен номер на студента>' ("gitlab-F1111111"_.
 NAMESPACE="gitlab${FACULTY_NUMBER}"
 ########################################################################################################################
@@ -36,3 +36,4 @@ if kubectl get clusterrolebinding ${NAMESPACE}-cluster-admin; then
 else
     kubectl create clusterrolebinding ${NAMESPACE}-cluster-admin --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:default
 fi;
+$SHELL

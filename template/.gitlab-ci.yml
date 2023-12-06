@@ -1,0 +1,97 @@
+# ${UNIQUE_IDENTIFIER} in this file should be replaced manually!
+# It is used only for namespace configuration (in other word this will be the namespace of your deployment)!
+# It doesn't have to be the same as the one defined in "im.sh" and "deploy.sh" - other value can be chosen,
+# but for simplicity, I would advise on using the same value.
+default:
+  image: google/cloud-sdk:latest
+
+stages:
+  - build
+  - deploy-dev
+  - deploy-int
+  - deploy-prod
+
+variables:
+  MAVEN_CLI_OPTS: "-B -U -T 2.0C -ntp -ff"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  IMAGE: "us.gcr.io/tu-sofia-pis-2023-dev/$CI_PROJECT_NAME"
+  INSTANCES: 2
+  CPU: 200m
+  MEMORY: 256Mi
+  CONTAINER_JAVA_OPTS_JMX: "-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=5555 -Dcom.sun.management.jmxremote.rmi.port=5555 -Dcom.sun.management.jmxremote.jmxmp.port=5555 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1"
+  #CONTAINER_JAVA_OPTS_CDBG: "-agentpath:/opt/cdbg/cdbg_java_agent.so -Dcom.google.cdbg.module=$CI_PROJECT_NAME -Dcom.google.cdbg.version=$CI_COMMIT_SHA"
+  #CONTAINER_JAVA_OPTS_CPROF: "-agentpath:/opt/cprof/profiler_java_agent.so=-cprof_service=$CI_PROJECT_NAME,-cprof_service_version=$CI_COMMIT_SHA,-cprof_cpu_use_per_thread_timers=false,-cprof_force_debug_non_safepoints=true"
+  CONTAINER_JAVA_OPTS_PROFILES: "-Dspring.profiles.active=production"
+  CONTAINER_JAVA_OPTS_MEMORY: "-Xmx128m"
+
+
+.build:
+  stage: build
+  image: maven:3-jdk-8
+  script:
+    - mvn ${MAVEN_CLI_OPTS} package docker:build docker:push
+
+build branch:
+  extends: .build
+  tags:
+    - Tags of your runner, so that it can be identified by gitlab and used instead of the shared runners. Tags are configured during runner registration and can be updated though GitLab project settings!
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - .m2/
+  only:
+    - branches
+
+build tag:
+  extends: .build
+  tags:
+    - Tags of your runner, so that it can be identified by gitlab and used instead of the shared runners. Tags are configured during runner registration and can be updated though GitLab project settings!
+  only:
+    - tags
+    - ^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$
+  after_script:
+    - docker tag ${IMAGE}:${CI_COMMIT_SHA:0:7} ${IMAGE}:latest
+
+.deploy: &deploy_definition
+  script:
+    - sed -i "s|${IMAGE}$|${IMAGE}:latest|g" k8s/*
+    - CONTAINER_JAVA_OPTS="${CONTAINER_JAVA_OPTS_MEMORY} ${CONTAINER_JAVA_OPTS_PROFILES} ${CONTAINER_JAVA_OPTS_JMX} ${CONTAINER_JAVA_OPTS_CDBG} ${CONTAINER_JAVA_OPTS_CPROF}"
+    - sed -i "s|\\\${CONTAINER_JAVA_OPTS}|${CONTAINER_JAVA_OPTS}|g" k8s/*
+    - sed -i "s|\\\${INSTANCES}|${INSTANCES}|g" k8s/*
+    - sed -i "s|\\\${CPU}|${CPU}|g" k8s/*
+    - sed -i "s|\\\${MEMORY}|${MEMORY}|g" k8s/*
+    - kubectl create ns ${UNIQUE_IDENTIFIER} || true
+    - kubectl --namespace=${UNIQUE_IDENTIFIER} apply -f k8s/
+    - kubectl rollout status --namespace=${UNIQUE_IDENTIFIER} -f k8s/deployment.yaml -w
+
+dev-tu-sofia-pis:
+  <<: *deploy_definition
+  tags:
+    - Tags of your runner, so that it can be identified by gitlab and used instead of the shared runners. Tags are configured during runner registration and can be updated though GitLab project settings!
+  stage: deploy-dev
+  environment:
+    name: Can anything by which you can identify your environment. For the laboratory exercise you don't need to change it!
+    url: This URL is shown in the GitLab UI and can used to quickly go to your deployment from GitLab. For the laboratory exercise you don't need to change it!
+  only:
+    # NOTE: For some projects the base branch can be called "master", for others "main". Check and modify the next line according to your project setup.
+    - main
+    - dev
+
+prod-tu-sofia-pis:
+  <<: *deploy_definition
+  #variables:
+  #  INSTANCES: 3
+  #  GATEWAY_CPU: 500m
+  #  GATEWAY_MEMORY: 4096Mi
+  #  CONTAINER_JAVA_OPTS_MEMORY: "-Xmx3584m"
+  stage: deploy-prod
+  tags:
+    - Tags of your runner, so that it can be identified by gitlab and used instead of the shared runners. Tags are configured during runner registration and can be updated though GitLab project settings!
+  environment:
+    name: Can anything by which you can identify your environment. For the laboratory exercise you don't need to change it!
+    url: This URL is shown in the GitLab UI and can used to quickly go to your deployment from GitLab. For the laboratory exercise you don't need to change it!
+  when: manual
+  only:
+    # NOTE: For some projects the base branch can be called "master", for others "main". Check and modify the next line according to your project setup.
+    - main
+    - tags

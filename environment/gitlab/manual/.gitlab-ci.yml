@@ -1,0 +1,33 @@
+image: google/cloud-sdk:latest
+
+stages:
+  - deploy
+
+.deploy_template: &deploy_definition
+ script:
+   - ./iam.sh
+   - ./deploy.sh
+
+tu-sofia-pis-2023-dev:
+ <<: *deploy_definition
+ stage: deploy
+ variables:
+   GITLAB_RUNNER_TOKEN:
+ tags:
+   - tu-sofia-pis-2023-dev
+ environment:
+   name: tu-sofia-pis-2023-dev
+ only:
+    - master
+
+tu-sofia-pis-2023-prod:
+ <<: *deploy_definition
+ stage: deploy-prod
+ variables:
+   GITLAB_RUNNER_TOKEN:
+ tags:
+   - tu-sofia-pis-2023-prod
+ environment:
+   name: tu-sofia-pis-2023-prod
+ only:
+    - master

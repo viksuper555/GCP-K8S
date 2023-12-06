@@ -1,0 +1,20 @@
+imports:
+  - path: gke_provider_cluster.jinja
+
+resources:
+  - name: tu-sofia-pis-2023-dev-cluster
+    type: gke_provider_cluster.jinja
+    properties:
+      clusterName: tu-sofia-pis-2023-dev
+      zone: us-central1-a
+      locations: us-central1-a
+      maintenanceWindowDuration: 03:00
+      nodePoolName: node-pool-1
+      diskSizeGb: 50
+      spot: true
+      initialNodeCount: 1
+      autoscaling: true
+      maxNodeCount: 4
+      serviceAccountId: tu-sofia-pis-2023-dev
+      serviceAccountDisplayName: PIS-2023 Kubernetes Cluster Account
+      serviceAccountDescription: Service account used from Kubernetes pods to manage GCP.

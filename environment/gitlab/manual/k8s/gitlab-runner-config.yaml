@@ -1,0 +1,57 @@
+# ${FACULTY_NUMBER}, ${GITLAB_RUNNER_NAME}, ${GITLAB_RUNNER_TOKEN}, ${PROJECT_ID} and ${NAMESPACE} in this file are the
+# same values as defined in "im.sh" and "deploy.sh" and is replaced by the "deploy.sh" script.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-runner${FACULTY_NUMBER}
+data:
+  config.toml: |
+    concurrent = 2
+
+    [[runners]]
+      url = "https://gitlab.com/"
+      # Name of the runner shown in gitlab, you can choose whatever you want
+      name = "${GITLAB_RUNNER_NAME}"
+      # ${GITLAB_RUNNER_TOKEN} - AFTER registration of the runner, check the generated config.toml and copy the 
+      # runner token in "./deploy.sh". For the runner the registration use the registration  token provided 
+      # in the GitLab project "Settings -> CI/CD -> Runner -> New project runner"!
+      token = "${GITLAB_RUNNER_TOKEN}"
+      executor = "kubernetes"
+      environment = ["GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/google-key/service-account.json", "GOOGLE_APPLICATION_EMAIL=gitlab-runner${FACULTY_NUMBER}@${PROJECT_ID}.iam.gserviceaccount.com"]
+      [runners.kubernetes]
+        namespace = "${NAMESPACE}"
+        privileged = true
+        cpu_request = "200m"
+        memory_request = "512Mi"
+      # NOTE: This will mount "docker" binary inside the build container from the GKE node on which the container
+      #       is running. Doing that will allow running "docker" commands in job's script part inside the build 
+      #       container. This is the preferred approach for using docker inside GitLab Runner pods deployed on
+      #       Kubernetes. Sometimes this doesn't work well and Docker in Docker should be used. Please see the
+      #       ".gitlab-ci.yml" of the project for more details on how to switch to Docker in Docker.
+      #       If Docker in Docker approach is used, this mount should be commented out.
+      [[runners.kubernetes.volumes.host_path]]
+        name = "var-run-docker-sock"
+        mount_path = "/var/run/docker.sock"
+      # NOTE: This will mount "docker" binary inside the build container from the GKE node on which the container
+      #       is running. This is usually necessary if the Docker image used to start the build container doesn't 
+      #       have Docker installed. However this approach leads to many problem. Better solution is to separate  
+      #       the Docker build into a separate stage and job and use Docker image that have all the required tools
+      #       installed, such is "google/cloud-sdk:latest" (preferred!) or "docker:latest-dind".
+      #[[runners.kubernetes.volumes.host_path]]
+      #  name = "usr-bin-docker"
+      #  mount_path = "/usr/bin/docker"
+      # NOTE: This directory is used by Docker in Docker approach to share authentication secrets between docker
+      #       server (running in another container) and the build container. Uncomment only if 
+      #       "/var/run/docker.sock" is NOT mounted.
+      #[[runners.kubernetes.volumes.empty_dir]]
+      #  name = "docker-certs"
+      #  mount_path = "/certs/client"
+      #  medium = "Memory"
+      # NOTE: This will mount Kubernetes secret with name "google-key" inside the build container. This variable
+      #       has the content of "service-account.json" file for the service account used by the GitLab Runner.
+      #       It can be used for authentication to various GCP service and allows using them from the pipeline. 
+      [[runners.kubernetes.volumes.secret]]
+        name = "google-key"
+        mount_path = "/var/secrets/google-key"
+        read_only = true

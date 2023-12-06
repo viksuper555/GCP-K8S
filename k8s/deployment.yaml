@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tu-sofia-pis-2023
+  name: viktor-kolev-471220028
   labels:
     app: tu-sofia-pis-2023
 spec:
@@ -19,7 +19,7 @@ spec:
           emptyDir: {}
 
       containers:
-        - name: tu-sofia-pis-2023
+        - name: viktor-kolev-471220028
           image: us.gcr.io/tu-sofia-pis-2023-dev/471220028
           env:
             - name: JAVA_TOOL_OPTIONS

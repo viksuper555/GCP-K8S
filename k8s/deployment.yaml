@@ -20,7 +20,7 @@ spec:
 
       containers:
         - name: tu-sofia-pis-2023
-          image: us.gcr.io/tu-sofia-pis-2023-dev/tu-sofia-pis-2023
+          image: us.gcr.io/tu-sofia-pis-2023-dev/471220028
           env:
             - name: JAVA_TOOL_OPTIONS
               value: ${CONTAINER_JAVA_OPTS}

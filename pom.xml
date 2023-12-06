@@ -11,9 +11,9 @@
 	</parent>
 
 	<groupId>bg.tu-sofia</groupId>
-	<artifactId>tu-sofia-pis-2023</artifactId>
+	<artifactId>4712200028</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>tu-sofia-pis-2023</name>
+	<name>4712200028</name>
 	<description>Demo project for Spring Boot</description>
 
 	<properties>

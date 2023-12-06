@@ -1,0 +1,171 @@
+default:
+  image: google/cloud-sdk:latest
+
+stages:
+  - build
+  - build-docker
+  - deploy-dev
+  - deploy-int
+  - deploy-prod
+
+variables:
+  MAVEN_ARGS: "-B -U -T 1.0C -ntp -ff"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  IMAGE: "us.gcr.io/tu-sofia-pis-2023-dev/$CI_PROJECT_NAME"
+  INSTANCES: 1
+  CPU: 20m
+  MEMORY: 300Mi
+  CONTAINER_JAVA_OPTS_MEMORY: "-Xss1m -Xmx128m -XX:MaxMetaspaceSize=64m -XX:MaxDirectMemorySize=5M -XX:ReservedCodeCacheSize=64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:MinMetaspaceFreeRatio=10 -XX:MaxMetaspaceFreeRatio=20"
+  CONTAINER_JAVA_OPTS_JMX: "-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=5555 -Dcom.sun.management.jmxremote.rmi.port=5555 -Dcom.sun.management.jmxremote.jmxmp.port=5555 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1"
+  CONTAINER_JAVA_OPTS_PROFILES: "-Dspring.profiles.active=production"
+  CONTAINER_JAVA_OPTS_OTHERS: "-XX:+UseContainerSupport -XX:+ShowCodeDetailsInExceptionMessages -XX:+AlwaysActAsServerClassMachine -XX:+UseG1GC -XX:+UseStringDeduplication"
+
+
+.build:
+  stage: build
+  image: maven:3-openjdk-17-slim
+  variables:
+    MAVEN_CONFIG: ""
+  before_script:
+    - echo "Starting maven"
+  script:
+    # NOTE: Build project.
+    - ./mvnw ${MAVEN_ARGS} verify
+    #
+    # NOTE: All options to build and push Docker image currently fail with authentication errors to GCR.
+    #       Please use Dockerfile and the "build docker image" from the "build-docker" stage.
+    #
+    # NOTE: Option 1 - Build project and Docker image using "spring-boot-maven-plugin".
+    #- ./mvnw ${MAVEN_ARGS} verify spring-boot:build-image -DdockerImageVersion=${CI_COMMIT_SHA:0:7}
+    #- docker push ${IMAGE}:${CI_COMMIT_SHA:0:7}
+    #
+    # NOTE: Option 2 - Build project and Docker image using Fabric8io's "docker-maven-plugin".
+    #- ./mvnw ${MAVEN_ARGS} verify docker:build docker:push -DdockerImageVersion=${CI_COMMIT_SHA:0:7}
+    #
+    # NOTE: Option 3 - Build project and Docker image using Spotify's "docker-maven-plugin".
+    # WARNING: This plugin is deprecated and authentication with GCR no longer works!
+    #- ./mvnw ${MAVEN_ARGS} verify docker:build docker:push -DdockerImageVersion=${CI_COMMIT_SHA:0:7}
+  after_script:
+    - echo "Maven build ended"
+  artifacts:
+    name: "build-output-$CI_COMMIT_REF_SLUG"
+    expire_in: 30 minutes
+    paths:
+      - target/*.jar
+    reports:
+      junit:
+        - target/surefire-reports/TEST-*.xml
+        - target/failsafe-reports/TEST-*.xml
+
+
+build branch:
+  extends: .build
+  tags:
+    - tu-sofia-pis-2023-dev
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - .m2/
+  only:
+    - branches
+
+build tag:
+  extends: .build
+  tags:
+    - tu-sofia-pis-2023-dev
+  only:
+    - tags
+    - ^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$
+
+
+build docker image:
+  stage: build-docker
+  tags:
+    - tu-sofia-pis-2023-dev
+  # NOTE: Default image is used for this job (google/cloud-sdk:latest) which comes with installed "docker".
+  #       There are two options to build Docker images from Docker containers (Kubernetes pods):
+  #         1. Mount "/var/run/docker.sock" from GKE node on which the build is running.
+  #         2. Use Docker in Docker:
+  #           2.1. https://docs.gitlab.com/runner/executors/kubernetes.html#using-docker-in-builds
+  #           2.2. https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#use-docker-in-docker-workflow-with-docker-executor
+  #        Uncomment "service" and "variables" sections from bellow to enable Docker in Docker.
+  ##image: docker:24.0.7
+  #services:
+  #  - docker:24.0.7-dind
+  #variables:
+  #  DOCKER_HOST: tcp://docker:2376
+  #  DOCKER_TLS_CERTDIR: "/certs"
+  #  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  #  DOCKER_TLS_VERIFY: 1
+  before_script:
+    - docker info
+    #- env
+  script:
+    # NOTE: Bellow commands can be used to build Docker image from a "Dockerfile" instead of build tool plugins.
+    #       This can be useful to those of you who decided to use different language and / or project.
+    # WARNING: This approach will not work with GitLab Runner installed with Helm Charts, because it doesn't create
+    #          IAM service account for the runner, therefore the login key ("service-account.json") is not available.
+    #          It's still possible to use runners installed with Helm Chart, however it will require manual steps and
+    #          tweaks to Helm Chart's values so that "GOOGLE_APPLICATION_EMAIL" and "GOOGLE_APPLICATION_CREDENTIALS"
+    #          are available!
+    #
+    # NOTE: Authenticate to GCR using "gcloud credential helper"
+    - gcloud auth activate-service-account ${GOOGLE_APPLICATION_EMAIL} --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+    - gcloud auth configure-docker
+    #
+    # NOTE: Authenticate to GCR using "access token"
+    #- gcloud auth activate-service-account ${GOOGLE_APPLICATION_EMAIL} --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+    #- gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us.gcr.io
+    #
+    # NOTE: Authenticate to GCR using "JSON key file"
+    #- cat ${GOOGLE_APPLICATION_CREDENTIALS} | docker login -u _json_key --password-stdin https://us.gcr.io
+    #
+    #  Build and push the Docker image
+    - docker build -t ${IMAGE}:${CI_COMMIT_SHA:0:7} .
+    - docker push ${IMAGE}:${CI_COMMIT_SHA:0:7}
+
+
+.deploy: &deploy_definition
+  script:
+    - sed -i "s|${IMAGE}$|${IMAGE}:${CI_COMMIT_SHA:0:7}|g" k8s/*
+    - CONTAINER_JAVA_OPTS="${CONTAINER_JAVA_OPTS_MEMORY} ${CONTAINER_JAVA_OPTS_OTHERS} ${CONTAINER_JAVA_OPTS_PROFILES} ${CONTAINER_JAVA_OPTS_JMX}"
+    - sed -i "s|\\\${CONTAINER_JAVA_OPTS}|${CONTAINER_JAVA_OPTS}|g" k8s/*
+    - sed -i "s|${CI_COMMIT_SHA}|${CI_COMMIT_SHA:0:7}|g" k8s/*
+    - sed -i "s|\\\${INSTANCES}|${INSTANCES}|g" k8s/*
+    - sed -i "s|\\\${CPU}|${CPU}|g" k8s/*
+    - sed -i "s|\\\${MEMORY}|${MEMORY}|g" k8s/*
+    - kubectl create ns pis || true
+    - kubectl --namespace=pis apply -f k8s/
+    - kubectl rollout status --namespace=pis -f k8s/deployment.yaml -w
+  dependencies: []
+
+dev-tu-sofia-pis:
+  <<: *deploy_definition
+  tags:
+    - tu-sofia-pis-2023-dev
+  stage: deploy-dev
+  environment:
+    name: tu-sofia-pis-2023-dev
+    url: https://tu-sofia-pis-2023-dev.tu-sofia.bg/
+  only:
+    - main
+    - dev
+
+prod-tu-sofia-pis:
+  <<: *deploy_definition
+  # NOTE: Example on how some deployment options can be changed for different environments.
+  #variables:
+  #  INSTANCES: 3
+  #  CPU: 500m
+  #  MEMORY: 4096Mi
+  #  CONTAINER_JAVA_OPTS_MEMORY: "-Xmx3584m"
+  stage: deploy-prod
+  tags:
+    - tu-sofia-pis-2023-prod
+  environment:
+    name: tu-sofia-pis-2023-prod
+    url: https://tu-sofia-pis-2023-prod.tu-sofia.bg/
+  when: manual
+  only:
+    - main
+    - tags
